@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Nosso Espaço - Rubens & Camilly</title>
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brandred: '#E11D48',
+            brandbg: '#F9F7F3',
+            brandcard: '#FFFFFF'
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.4s ease-out',
+            'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' }
+            },
+            slideUp: {
+              '0%': { transform: 'translateY(20px)', opacity: '0' },
+              '100%': { transform: 'translateY(0)', opacity: '1' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Ícones Lucide -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Efeito Confetti para comemorações -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Google Fonts: Plus Jakarta Sans (UI) & Playfair Display (Títulos Românticos) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================
+       ESTILOS GLOBAIS E UTILITÁRIOS CUSTOMIZADOS
+       ========================================== */
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: none;
+      background-color: theme('colors.brandbg');
+      color: theme('colors.zinc.800');
+    }
+    
+    .font-serif-romantic {
+      font-family: 'Playfair Display', serif;
+    }
+    
+    /* Ocultar barra de rolagem mas manter funcionalidade */
+    .no-scrollbar::-webkit-scrollbar { 
+        display: none; 
+    }
+    .no-scrollbar { 
+        -ms-overflow-style: none; 
+        scrollbar-width: none; 
+    }
+    
+    /* Scrollbar estilizada para a leitura de cartas */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(0,0,0,0.02);
+        border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(0,0,0,0.1);
+        border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(0,0,0,0.2);
+    }
+    
+    /* Masonry Layout para as cartas */
+    .columns-masonry {
+        column-count: 1;
+        column-gap: 1.25rem;
+    }
+    @media (min-width: 640px) { .columns-masonry { column-count: 2; } }
+    @media (min-width: 1280px) { .columns-masonry { column-count: 3; } }
+    .columns-masonry > div {
+        break-inside: avoid;
+        margin-bottom: 1.25rem;
+    }
+
+    /* Loader Giratório Customizado */
+    .loader {
+      border: 3px solid rgba(225, 29, 72, 0.2);
+      border-top-color: #E11D48;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 
+        0% { transform: rotate(0deg); } 
+        100% { transform: rotate(360deg); } 
+    }
+  </style>
+</head>
+<body class="antialiased min-h-screen">
+
+  <!-- ==========================================
+       COMPONENTES GLOBAIS DE UI
+       ========================================== -->
+
+  <!-- TOAST DE NOTIFICAÇÃO -->
+  <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-5 py-3 rounded-2xl text-sm font-semibold shadow-2xl transition-all duration-300 transform -translate-y-24 opacity-0 z-[100] flex items-center gap-3 pointer-events-none max-w-[90vw] text-center line-clamp-2">
+    <i data-lucide="bell" class="w-4 h-4 text-brandred flex-shrink-0"></i>
+    <span id="toast-msg">Sincronizando dados...</span>
+  </div>
+
+  <!-- TELA DE CARREGAMENTO GLOBAL -->
+  <div id="global-loader" class="fixed inset-0 z-[60] bg-brandbg flex flex-col items-center justify-center transition-opacity duration-300 hidden">
+    <div class="loader mb-4 w-10 h-10 border-4"></div>
+    <p class="text-sm font-medium text-zinc-500 font-serif-romantic animate-pulse-slow">Sincronizando nosso espaço...</p>
+  </div>
+
+  <!-- TELA DE BLOQUEIO POR PIN -->
+  <div id="pin-screen" class="fixed inset-0 z-50 bg-brandbg flex flex-col items-center justify-center p-6 transition-opacity duration-300">
+    <div class="w-full max-w-xs text-center space-y-8 animate-fade-in">
+      <div class="w-20 h-20 bg-white border border-rose-100 text-brandred rounded-full flex items-center justify-center mx-auto shadow-sm">
+        <i data-lucide="heart-handshake" class="w-10 h-10 fill-current opacity-80"></i>
+      </div>
+      <div>
+        <h1 class="text-3xl font-serif-romantic font-bold text-zinc-900">Nosso Espaço</h1>
+        <p class="text-sm text-zinc-500 mt-2">Para acessar, digite a senha.</p>
+      </div>
+      
+      <div class="flex justify-center">
+        <!-- Input da Senha Refinado para 8 digitos -->
+        <input type="password" inputmode="numeric" maxlength="8" id="pin-input" 
+               class="w-full max-w-[220px] text-center tracking-[0.4em] text-3xl font-black py-4 bg-white border border-zinc-200 rounded-3xl shadow-sm focus:outline-none focus:ring-4 focus:ring-rose-100 focus:border-brandred transition-all"
+               placeholder="••••••••" onkeypress="verificarPINEnter(event)">
+      </div>
+
+      <button onclick="verificarPIN()" id="btn-entrar-pin" class="w-full py-4 bg-zinc-900 text-white rounded-2xl font-semibold shadow-md active:scale-[0.98] hover:bg-zinc-800 transition flex justify-center items-center gap-2">
+        <span>Acessar</span>
+        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </button>
+      <p id="pin-erro" class="text-sm text-brandred font-medium h-5 opacity-0 transition-opacity">Senha incorreta.</p>
+    </div>
+  </div>
+
+  <!-- TELA DE IDENTIDADE -->
+  <div id="identity-screen" class="fixed inset-0 z-50 bg-brandbg flex flex-col items-center justify-center p-6 hidden">
+    <div class="w-full max-w-xs text-center space-y-8 animate-fade-in">
+      <div>
+        <h1 class="text-3xl font-serif-romantic font-bold text-zinc-900">Bem-vindo(a)</h1>
+        <p class="text-sm text-zinc-500 mt-2">Quem está acessando agora?</p>
+      </div>
+      <div class="flex flex-col gap-4 mt-8">
+        <button onclick="definirUsuario('Rubens')" class="py-5 bg-white border-2 border-zinc-100 rounded-3xl font-bold text-lg text-zinc-800 shadow-sm hover:border-brandred hover:text-brandred transition active:scale-[0.98] flex items-center justify-center gap-3">
+          <i data-lucide="user" class="w-5 h-5"></i> Sou o Rubens
+        </button>
+        <button onclick="definirUsuario('Camilly')" class="py-5 bg-white border-2 border-zinc-100 rounded-3xl font-bold text-lg text-zinc-800 shadow-sm hover:border-brandred hover:text-brandred transition active:scale-[0.98] flex items-center justify-center gap-3">
+          <i data-lucide="sparkles" class="w-5 h-5"></i> Sou a Camilly
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       APLICAÇÃO PRINCIPAL
+       ========================================== -->
+  <div id="app" class="max-w-md md:max-w-6xl mx-auto flex flex-col md:flex-row min-h-screen relative hidden">
+
+    <!-- BARRA DE NAVEGAÇÃO -->
+    <nav class="flex-shrink-0 fixed bottom-0 left-0 right-0 md:sticky md:top-0 md:h-screen md:w-72 z-40 bg-white/90 md:bg-brandbg backdrop-blur-xl border-t md:border-t-0 md:border-r border-zinc-200/50 pb-[env(safe-area-inset-bottom)] md:pb-0 px-2 py-2 md:p-8 flex md:flex-col justify-around md:justify-start gap-1 md:gap-4 order-last md:order-first shadow-[0_-4px_20px_rgba(0,0,0,0.02)] md:shadow-none transition-all">
+      
+      <!-- Cabeçalho da Navegação (Visível apenas em Desktop) -->
+      <div class="hidden md:flex flex-col items-center mb-10 mt-4 text-center">
+        <div class="w-16 h-16 bg-white shadow-sm border border-rose-50 text-brandred rounded-full flex items-center justify-center mb-4 transition-transform hover:scale-110 duration-300">
+          <i data-lucide="heart" class="w-7 h-7 fill-current opacity-80"></i>
+        </div>
+        <h1 class="font-serif-romantic text-2xl font-bold text-zinc-900">Nosso Espaço</h1>
+        <p id="welcome-msg" class="text-sm font-medium text-zinc-500 mt-1"></p>
+        <button onclick="fazerLogout()" class="mt-4 text-xs font-semibold text-zinc-400 hover:text-brandred transition flex items-center gap-1 bg-zinc-50 px-3 py-1.5 rounded-full border border-zinc-100">
+          <i data-lucide="log-out" class="w-3 h-3"></i> Sair do dispositivo
+        </button>
+      </div>
+
+      <!-- Botão Aba: Dates -->
+      <button onclick="navegarAba('dates')" id="nav-dates" class="flex-1 md:flex-none flex md:flex-row flex-col items-center justify-center md:justify-start gap-1 md:gap-3 text-brandred bg-rose-50/50 md:bg-white md:shadow-sm md:border md:border-rose-100 py-3 md:px-5 md:py-4 rounded-2xl transition-all duration-200 group relative overflow-hidden">
+        <div class="absolute inset-0 bg-brandred/5 opacity-0 group-hover:opacity-100 transition-opacity hidden md:block"></div>
+        <i data-lucide="calendar-heart" class="w-5 h-5 md:w-6 md:h-6 relative z-10 transition-transform group-hover:scale-110"></i>
+        <span class="text-[11px] md:text-sm font-bold relative z-10">Dates</span>
+      </button>
+      
+      <!-- Botão Aba: Dedicatórias -->
+      <button onclick="navegarAba('dedicatorias')" id="nav-dedicatorias" class="flex-1 md:flex-none flex md:flex-row flex-col items-center justify-center md:justify-start gap-1 md:gap-3 text-zinc-400 hover:text-zinc-600 md:hover:bg-white/60 md:border md:border-transparent py-3 md:px-5 md:py-4 rounded-2xl transition-all duration-200 group relative overflow-hidden md:scale-95 hover:scale-100">
+        <i data-lucide="pen-tool" class="w-5 h-5 md:w-6 md:h-6 relative z-10 transition-transform group-hover:scale-110"></i>
+        <span class="text-[11px] md:text-sm font-bold relative z-10">Dedicatórias</span>
+      </button>
+    </nav>
+
+    <!-- ÁREA DE CONTEÚDO PRINCIPAL -->
+    <div class="flex-1 flex flex-col pb-28 md:pb-0 relative min-w-0 overflow-x-hidden">
+
+      <!-- CABEÇALHO DA VIEW ATUAL -->
+      <header class="sticky top-0 z-30 bg-brandbg/80 backdrop-blur-xl px-5 md:px-12 pt-10 md:pt-12 pb-5 border-b border-zinc-200/50">
+        <div class="flex items-end justify-between">
+          <div class="animate-slide-up">
+            <div class="flex items-center gap-2">
+                <span id="header-subtitle" class="text-xs font-bold tracking-widest uppercase text-brandred/80">Linha do Tempo</span>
+                <!-- Logout Minimalista Mobile -->
+                <button onclick="fazerLogout()" class="md:hidden text-zinc-400 hover:text-brandred transition bg-white shadow-sm border border-zinc-100 rounded-full w-6 h-6 flex items-center justify-center">
+                    <i data-lucide="log-out" class="w-3 h-3"></i>
+                </button>
+            </div>
+            <h2 id="header-title" class="text-3xl md:text-4xl font-serif-romantic font-bold text-zinc-900 mt-1 tracking-tight">Propostas</h2>
+          </div>
+          
+          <!-- Botão Global Adicionar (Abre o modal correspondente à aba) -->
+          <button onclick="abrirModalCriacao()" class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-zinc-900 text-white flex items-center justify-center shadow-lg active:scale-90 hover:bg-zinc-800 transition-transform duration-200 animate-slide-up relative group">
+            <i data-lucide="plus" class="w-6 h-6 transition-transform group-hover:rotate-90"></i>
+          </button>
+        </div>
+
+        <!-- Sub-Navegação (Exclusivo para Dedicatórias) -->
+        <div id="subtabs-dedicatorias" class="hidden mt-6 flex p-1.5 bg-zinc-200/50 backdrop-blur-sm rounded-2xl w-full md:w-fit animate-fade-in border border-zinc-200/50">
+          <button onclick="mudarSubAba('cartas')" id="btn-sub-cartas" class="flex-1 md:w-32 py-2.5 text-sm font-bold rounded-xl bg-white text-zinc-900 shadow-sm transition-all">Cartas</button>
+          <button onclick="mudarSubAba('musicas')" id="btn-sub-musicas" class="flex-1 md:w-32 py-2.5 text-sm font-bold rounded-xl text-zinc-500 hover:text-zinc-700 transition-all">Músicas</button>
+        </div>
+      </header>
+
+      <!-- CORPO DAS VIEWS -->
+      <main class="flex-1 px-5 md:px-12 pt-8 space-y-12">
+        
+        <!-- ==================== VIEW: DATES ==================== -->
+        <section id="view-dates" class="space-y-12 pb-10">
+          
+          <!-- Estado Vazio Dates -->
+          <div id="dates-empty" class="hidden flex-col items-center justify-center py-20 text-center animate-fade-in">
+            <div class="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mb-4 border border-rose-100">
+              <i data-lucide="calendar-plus" class="w-8 h-8 text-rose-400"></i>
+            </div>
+            <h3 class="font-serif-romantic text-xl font-bold text-zinc-900">Nenhum date planejado</h3>
+            <p class="text-sm text-zinc-500 mt-2 max-w-xs">Que tal ser o primeiro a propor um encontro especial?</p>
+            <button onclick="abrirModalCriacao()" class="mt-6 px-6 py-3 bg-zinc-900 text-white font-semibold text-sm rounded-xl hover:bg-zinc-800 transition active:scale-95 shadow-md">Propor Date</button>
+          </div>
+
+          <!-- Seção Dates Futuros / Pendentes -->
+          <div id="container-dates-futuros">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="h-px bg-zinc-200 flex-1"></div>
+              <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+                <i data-lucide="calendar-clock" class="w-4 h-4"></i> Próximos
+              </h3>
+              <div class="h-px bg-zinc-200 flex-1"></div>
+            </div>
+            <!-- Grid Responsiva -->
+            <div id="lista-dates-futuros" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-6"></div>
+          </div>
+
+          <!-- Seção Dates Histórico / Memórias -->
+          <div id="container-dates-historico">
+            <div class="flex items-center gap-3 mb-6 mt-12">
+              <div class="h-px bg-zinc-200 flex-1"></div>
+              <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+                <i data-lucide="camera" class="w-4 h-4"></i> Memórias
+              </h3>
+              <div class="h-px bg-zinc-200 flex-1"></div>
+            </div>
+            <!-- Grid Responsiva -->
+            <div id="lista-dates-historico" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-6"></div>
+          </div>
+        </section>
+
+        <!-- ==================== VIEW: CARTAS ==================== -->
+        <section id="view-cartas" class="hidden pb-10">
+          
+          <!-- Estado Vazio Cartas -->
+          <div id="cartas-empty" class="hidden flex-col items-center justify-center py-20 text-center animate-fade-in">
+             <div class="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mb-4 border border-rose-100">
+                 <i data-lucide="mail-plus" class="w-8 h-8 text-rose-400"></i>
+             </div>
+             <h3 class="font-serif-romantic text-xl font-bold text-zinc-900">A caixa postal está vazia</h3>
+             <p class="text-sm text-zinc-500 mt-2">Escreva o primeiro bilhete ou poema.</p>
+             <button onclick="abrirModalCriacaoCarta()" class="mt-6 px-6 py-3 bg-zinc-900 text-white font-semibold text-sm rounded-xl hover:bg-zinc-800 transition active:scale-95 shadow-md">Escrever Carta</button>
+          </div>
+          
+          <!-- Grid Masonry para as Cartas -->
+          <div id="lista-cartas" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-6 columns-masonry"></div>
+        </section>
+
+        <!-- ==================== VIEW: MÚSICAS ==================== -->
+        <section id="view-musicas" class="hidden pb-10">
+          
+          <!-- Barra de Pesquisa e Link Oficial Playlist -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 bg-white p-2 pl-4 rounded-2xl border border-zinc-200 shadow-sm relative z-10">
+            <div class="relative flex-1 flex items-center">
+              <i data-lucide="search" class="w-5 h-5 text-zinc-400"></i>
+              <input type="text" id="busca-musica" oninput="filtrarMusicas()" placeholder="Filtrar nossa trilha sonora..." 
+                     class="w-full pl-3 pr-4 py-2 bg-transparent text-sm focus:outline-none placeholder-zinc-400">
+            </div>
+            <div class="h-8 w-px bg-zinc-200 hidden sm:block"></div>
+            <!-- ATENÇÃO: Link da Playlist do YT Music configurado aqui -->
+            <a id="btn-playlist-oficial" href="https://music.youtube.com/playlist?list=PLU3-uUjPFPk0" target="_blank" 
+               class="py-2.5 px-5 bg-red-50 text-brandred rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-100 transition whitespace-nowrap active:scale-95">
+              <i data-lucide="headphones" class="w-4 h-4"></i>
+              Abrir Playlist
+            </a>
+          </div>
+          
+          <!-- Estado Vazio Músicas -->
+          <div id="musicas-empty" class="hidden flex-col items-center justify-center py-20 text-center animate-fade-in">
+             <div class="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mb-4 border border-rose-100">
+                 <i data-lucide="music-3" class="w-8 h-8 text-rose-400"></i>
+             </div>
+             <h3 class="font-serif-romantic text-xl font-bold text-zinc-900">Sem trilha sonora (ainda)</h3>
+             <p class="text-sm text-zinc-500 mt-2 max-w-xs">Qual é a música que te faz lembrar do nosso amor?</p>
+             <button onclick="abrirModal('modal-musica-content', 'modal-musica')" class="mt-6 px-6 py-3 bg-zinc-900 text-white font-semibold text-sm rounded-xl hover:bg-zinc-800 transition active:scale-95 shadow-md">Dedicar Música</button>
+          </div>
+          
+          <!-- Grid Responsiva Músicas -->
+          <div id="lista-musicas" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5"></div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAIS (JANELAS SOBREPOSTAS)
+       ========================================== -->
+
+  <!-- Backdrop Global Escuro -->
+  <div id="modal-backdrop" class="fixed inset-0 bg-zinc-900/50 backdrop-blur-sm z-[55] hidden transition-opacity duration-300 opacity-0" onclick="fecharModais()"></div>
+
+  <!-- ==================== MODAL: DATES ==================== -->
+  <div id="modal-date" class="fixed inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center z-[60] hidden pointer-events-none">
+    <div class="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md p-6 pb-10 sm:pb-6 shadow-2xl transition-transform duration-300 transform translate-y-full sm:translate-y-0 sm:scale-95 opacity-0 pointer-events-auto max-h-[90vh] overflow-y-auto no-scrollbar relative flex flex-col" id="modal-date-content">
+      
+      <div class="flex justify-between items-center mb-6 sticky top-0 bg-white z-10 pt-2 pb-4 border-b border-zinc-100">
+        <h3 id="modal-date-titulo" class="font-serif-romantic text-xl font-bold text-zinc-900">Novo Encontro</h3>
+        <button onclick="fecharModais()" class="w-8 h-8 flex items-center justify-center bg-zinc-100 text-zinc-500 rounded-full hover:bg-zinc-200 transition"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      
+      <form id="form-date" onsubmit="event.preventDefault(); salvarNovoDate();" class="space-y-5">
+        <input type="hidden" id="date-edit-id" value="">
+
+        <div>
+          <label class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">Onde vamos?</label>
+          <div class="relative">
+             <i data-lucide="map-pin" class="absolute left-3.5 top-3.5 w-5 h-5 text-zinc-400"></i>
+             <input type="text" id="date-local" required placeholder="Ex: Chopp da Fábrica..." class="w-full pl-11 pr-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-2xl focus:bg-white focus:border-brandred focus:ring-4 focus:ring-rose-50 outline-none transition text-sm font-medium">
+          </div>
+        </div>
+        
+        <div>
+          <label class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">Quando?</label>
+          <div class="grid grid-cols-3 gap-2 mb-3" id="tipo-horario-picker">
+            <button type="button" data-tipo="aberto" onclick="selecionarTipoHorario('aberto')" class="tipo-horario-btn py-2.5 px-1 rounded-xl text-[11px] font-bold border-2 transition-all border-zinc-200 text-zinc-500 hover:border-zinc-300">Em aberto</button>
+            <button type="button" data-tipo="dia" onclick="selecionarTipoHorario('dia')" class="tipo-horario-btn py-2.5 px-1 rounded-xl text-[11px] font-bold border-2 transition-all border-zinc-200 text-zinc-500 hover:border-zinc-300">Só o dia</button>
+            <button type="button" data-tipo="dia_hora" onclick="selecionarTipoHorario('dia_hora')" class="tipo-horario-btn py-2.5 px-1 rounded-xl text-[11px] font-bold border-2 transition-all border-brandred bg-rose-50 text-brandred">Dia e hora</button>
+          </div>
+          <div id="wrap-data-dia" class="relative hidden">
+             <i data-lucide="calendar" class="absolute left-3.5 top-3.5 w-5 h-5 text-zinc-400"></i>
+             <input type="date" id="date-input-dia" class="w-full pl-11 pr-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-2xl focus:bg-white focus:border-brandred focus:ring-4 focus:ring-rose-50 outline-none transition text-sm font-medium">
+          </div>
+          <div id="wrap-data-hora" class="relative">
+             <i data-lucide="calendar" class="absolute left-3.5 top-3.5 w-5 h-5 text-zinc-400"></i>
+             <input type="datetime-local" id="date-input-datetime" class="w-full pl-11 pr-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-2xl focus:bg-white focus:border-brandred focus:ring-4 focus:ring-rose-50 outline-none transition text-sm font-medium">
+          </div>
+          <p id="msg-tipo-aberto" class="hidden text-xs text-zinc-400 px-1 mt-1 text-center font-medium">Combinamos o dia e horário depois 🤍</p>
+        </div>
+        
+        <div id="wrap-date-foto">
+          <label class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">Imagem (Pista visual)</label>
+          <div class="relative w-full border-2 border-dashed border-zinc-200 rounded-2xl p-6 text-center hover:bg-zinc-50 hover:border-zinc-300 transition cursor-pointer group" onclick="document.getElementById('date-foto-upload').click()">
+            <div id="upload-placeholder" class="flex flex-col items-center">
+              <div class="w-12 h-12 bg-white shadow-sm border border-zinc-100 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <i data-lucide="image-plus" class="w-6 h-6 text-brandred"></i>
+              </div>
+              <span id="nome-arquivo" class="text-sm text-zinc-600 font-semibold">Tocar para enviar foto</span>
+              <span class="text-xs text-zinc-400 mt-1">Opcional, até 2MB</span>
+            </div>
+            <img id="preview-foto" class="w-full h-40 object-cover rounded-xl hidden shadow-sm absolute inset-0 m-auto p-1 bg-white">
+            <button type="button" id="btn-remove-foto" onclick="event.stopPropagation(); removerImagem()" class="absolute -top-3 -right-3 w-8 h-8 bg-zinc-900 text-white rounded-full flex items-center justify-center hidden shadow-md z-10 hover:bg-brandred transition"><i data-lucide="x" class="w-4 h-4"></i></button>
+            <input type="file" id="date-foto-upload" accept="image/*" class="hidden" onchange="processarImagem(event)">
+          </div>
+        </div>
+        
+        <div>
+          <label class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">Detalhes</label>
+          <textarea id="date-desc" rows="3" placeholder="Sugestão de roupa, motivo especial..." class="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl focus:bg-white focus:border-brandred focus:ring-4 focus:ring-rose-50 outline-none transition text-sm resize-none"></textarea>
+        </div>
+        
+        <button type="submit" id="btn-submit-date" class="w-full py-4 bg-zinc-900 text-white rounded-2xl font-bold shadow-lg hover:bg-zinc-800 active:scale-[0.98] transition flex justify-center items-center gap-2 mt-6">
+          <i data-lucide="send" class="w-4 h-4"></i> <span id="btn-submit-date-text">Enviar Proposta</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: CARTAS ==================== -->
+  <div id="modal-carta" class="fixed inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center z-[60] hidden pointer-events-none">
+    <div class="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md p-6 pb-10 sm:pb-6 shadow-2xl transition-transform duration-300 transform translate-y-full sm:translate-y-0 sm:scale-95 opacity-0 pointer-events-auto max-h-[90vh] overflow-y-auto no-scrollbar relative flex flex-col" id="modal-carta-content">
+      
+      <div class="flex justify-between items-center mb-6 sticky top-0 bg-white z-10 pt-2 pb-4 border-b border-zinc-100">
+        <h3 class="font-serif-romantic text-xl font-bold text-zinc-900">Nova Carta</h3>
+        <button onclick="fecharModais()" class="w-8 h-8 flex items-center justify-center bg-zinc-100 text-zinc-500 rounded-full hover:bg-zinc-200 transition"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      
+      <form id="form-carta" onsubmit="event.preventDefault(); salvarNovaCarta();" class="space-y-5">
+        <input type="hidden" id="carta-edit-id" value="">
+        
+        <div>
+          <label class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">Título</label>
+          <input type="text" id="carta-titulo" required placeholder="Ex: Aquele dia chuvoso..." class="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl focus:bg-white focus:border-brandred focus:ring-4 focus:ring-rose-50 outline-none transition text-sm font-medium font-serif-romantic text-zinc-800 placeholder-zinc-400">
+        </div>
+        
+        <div>
+          <label class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">Data da Entrega Real</label>
+          <input type="date" id="carta-data" required class="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl focus:bg-white focus:border-brandred focus:ring-4 focus:ring-rose-50 outline-none transition text-sm font-medium text-zinc-800">
+        </div>
+        
+        <div>
+          <label class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2 block">Papel de Fundo</label>
+          <div class="flex gap-3" id="color-picker" role="radiogroup">
+            <button type="button" aria-checked="true" role="radio" onclick="selecionarCor('#FFF1F2', this)" class="color-btn relative w-10 h-10 rounded-full bg-[#FFF1F2] border-2 border-brandred transition-all shadow-sm flex items-center justify-center focus:outline-none focus:ring-4 focus:ring-rose-100">
+                <div class="check-icon w-2 h-2 rounded-full bg-brandred"></div>
+            </button>
+            <button type="button" aria-checked="false" role="radio" onclick="selecionarCor('#FEF3C7', this)" class="color-btn relative w-10 h-10 rounded-full bg-[#FEF3C7] border-2 border-zinc-200 hover:border-zinc-300 transition-all shadow-sm flex items-center justify-center focus:outline-none">
+                <div class="check-icon w-2 h-2 rounded-full bg-amber-500 hidden"></div>
+            </button>
+            <button type="button" aria-checked="false" role="radio" onclick="selecionarCor('#E0E7FF', this)" class="color-btn relative w-10 h-10 rounded-full bg-[#E0E7FF] border-2 border-zinc-200 hover:border-zinc-300 transition-all shadow-sm flex items-center justify-center focus:outline-none">
+                <div class="check-icon w-2 h-2 rounded-full bg-indigo-500 hidden"></div>
+            </button>
+            <button type="button" aria-checked="false" role="radio" onclick="selecionarCor('#F3E8FF', this)" class="color-btn relative w-10 h-10 rounded-full bg-[#F3E8FF] border-2 border-zinc-200 hover:border-zinc-300 transition-all shadow-sm flex items-center justify-center focus:outline-none">
+                <div class="check-icon w-2 h-2 rounded-full bg-purple-500 hidden"></div>
+            </button>
+            <button type="button" aria-checked="false" role="radio" onclick="selecionarCor('#FFFFFF', this)" class="color-btn relative w-10 h-10 rounded-full bg-[#FFFFFF] border-2 border-zinc-200 hover:border-zinc-300 transition-all shadow-sm flex items-center justify-center focus:outline-none">
+                <div class="check-icon w-2 h-2 rounded-full bg-zinc-800 hidden"></div>
+            </button>
+          </div>
+        </div>
+        
+        <div>
+          <label class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">Sua Mensagem</label>
+          <textarea id="carta-conteudo" required rows="6" placeholder="Escreva o que está no seu coração..." class="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl focus:bg-white focus:border-brandred focus:ring-4 focus:ring-rose-50 outline-none transition text-sm font-serif-romantic leading-relaxed resize-none text-zinc-800 placeholder-zinc-400 custom-scrollbar"></textarea>
+        </div>
+        
+        <button type="submit" class="w-full py-4 bg-zinc-900 text-white rounded-2xl font-bold shadow-lg hover:bg-zinc-800 active:scale-[0.98] transition mt-6 flex justify-center items-center gap-2">
+          Selar Carta
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: MÚSICAS ==================== -->
+  <div id="modal-musica" class="fixed inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center z-[60] hidden pointer-events-none">
+    <div class="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md p-6 pb-10 sm:pb-6 shadow-2xl transition-transform duration-300 transform translate-y-full sm:translate-y-0 sm:scale-95 opacity-0 pointer-events-auto" id="modal-musica-content">
+      
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="font-serif-romantic text-xl font-bold text-zinc-900">Dedicar Música</h3>
+        <button onclick="fecharModais()" class="w-8 h-8 flex items-center justify-center bg-zinc-100 text-zinc-500 rounded-full hover:bg-zinc-200 transition"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      
+      <div class="space-y-4">
+        <form onsubmit="event.preventDefault(); realizarBuscaMusica();" class="relative">
+          <input type="text" id="yt-search-input" required placeholder="Digite a música ou artista..." class="w-full pl-4 pr-16 py-4 bg-zinc-50 border border-zinc-200 rounded-2xl focus:bg-white focus:border-brandred focus:ring-4 focus:ring-rose-50 outline-none transition text-sm font-medium">
+          <button type="submit" class="absolute right-2 top-2 bottom-2 w-12 bg-zinc-900 text-white rounded-xl font-bold hover:bg-zinc-800 transition shadow-sm flex items-center justify-center">
+            <i data-lucide="search" class="w-4 h-4"></i>
+          </button>
+        </form>
+        
+        <div id="yt-search-results" class="space-y-3 pt-2 max-h-64 overflow-y-auto custom-scrollbar rounded-xl pr-2">
+          <div class="flex flex-col items-center justify-center py-8 text-zinc-400">
+             <i data-lucide="youtube" class="w-8 h-8 mb-2 opacity-50 text-red-500"></i>
+             <p class="text-xs text-center px-4">A música será guardada no espaço e, se configurado, enviada para o YouTube Music.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: ATUALIZAR DATE (PÓS-DATE) ==================== -->
+  <div id="modal-pos-date" class="fixed inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center z-[60] hidden pointer-events-none">
+    <div class="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md p-6 pb-10 sm:pb-6 shadow-2xl transition-transform duration-300 transform translate-y-full sm:translate-y-0 sm:scale-95 opacity-0 pointer-events-auto max-h-[90vh] overflow-y-auto no-scrollbar relative flex flex-col" id="modal-pos-date-content">
+
+      <div class="flex justify-between items-center mb-6 sticky top-0 bg-white z-10 pt-2 pb-4 border-b border-zinc-100">
+        <h3 class="font-serif-romantic text-xl font-bold text-zinc-900">Atualizar Date</h3>
+        <button onclick="fecharModais()" class="w-8 h-8 flex items-center justify-center bg-zinc-100 text-zinc-500 rounded-full hover:bg-zinc-200 transition"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+
+      <form id="form-pos-date" onsubmit="event.preventDefault(); salvarPosDate();" class="space-y-5">
+        <input type="hidden" id="pos-date-id" value="">
+
+        <div>
+          <label class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">Como foi?</label>
+          <textarea id="pos-date-desc" rows="3" placeholder="Um resumo rápido de como foi o date..." class="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl focus:bg-white focus:border-brandred focus:ring-4 focus:ring-rose-50 outline-none transition text-sm resize-none"></textarea>
+        </div>
+
+        <div>
+          <label class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">Fotos da memória</label>
+          <!-- Galeria Existente (Para não perder referências visuais) -->
+          <div id="galeria-pos-date-existente" class="flex gap-2 flex-wrap mb-3"></div>
+          
+          <div class="relative w-full border-2 border-dashed border-zinc-200 rounded-2xl p-6 text-center hover:bg-zinc-50 hover:border-zinc-300 transition cursor-pointer group" onclick="document.getElementById('pos-date-foto-upload').click()">
+            <div class="flex flex-col items-center">
+              <div class="w-12 h-12 bg-white shadow-sm border border-zinc-100 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <i data-lucide="images" class="w-6 h-6 text-brandred"></i>
+              </div>
+              <span class="text-sm text-zinc-600 font-semibold">Adicionar fotos do date</span>
+              <span class="text-xs text-zinc-400 mt-1">Pode escolher várias, máx 2MB cada</span>
+            </div>
+            <input type="file" id="pos-date-foto-upload" accept="image/*" multiple class="hidden" onchange="processarImagensPosDate(event)">
+          </div>
+          <!-- Preview de novas seleções -->
+          <div id="preview-fotos-pos-date" class="flex gap-2 flex-wrap mt-3"></div>
+        </div>
+
+        <button type="submit" id="btn-submit-pos-date" class="w-full py-4 bg-zinc-900 text-white rounded-2xl font-bold shadow-lg hover:bg-zinc-800 active:scale-[0.98] transition flex justify-center items-center gap-2 mt-6">
+          <i data-lucide="save" class="w-4 h-4"></i> Salvar Atualização
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: LEITURA DE CARTA ==================== -->
+  <div id="modal-leitura-carta" class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-md hidden flex items-center justify-center p-4 sm:p-8 pointer-events-none transition-opacity duration-300 opacity-0">
+    <div id="leitura-card-container" class="w-full max-w-lg rounded-3xl p-8 sm:p-12 shadow-2xl relative transition-transform duration-500 transform scale-95 pointer-events-auto flex flex-col max-h-[90vh]">
+      
+      <button onclick="fecharModais()" class="absolute top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 flex items-center justify-center bg-black/5 hover:bg-black/10 text-zinc-800 rounded-full transition-colors backdrop-blur-sm z-10">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+      
+      <div class="text-center pb-6 border-b border-black/10 flex-shrink-0">
+        <span id="leitura-data" class="text-[10px] sm:text-xs uppercase font-bold tracking-widest text-zinc-500/80"></span>
+        <h3 id="leitura-titulo" class="font-serif-romantic text-2xl sm:text-4xl font-bold text-zinc-900 mt-3 leading-tight"></h3>
+        <div class="flex items-center justify-center gap-2 mt-4 text-sm text-zinc-600 italic font-serif-romantic">
+           <span>Com amor, <strong id="leitura-autor" class="font-semibold text-zinc-800"></strong></span>
+        </div>
+      </div>
+      
+      <div id="leitura-conteudo" class="flex-1 mt-6 text-base sm:text-lg font-serif-romantic leading-relaxed text-zinc-800 overflow-y-auto whitespace-pre-wrap pr-2 custom-scrollbar"></div>
+      
+      <!-- BOTÕES DE AÇÃO DA CARTA (Exclusivo para o autor) -->
+      <div id="leitura-actions" class="mt-6 flex gap-3 justify-center hidden border-t border-black/10 pt-6">
+         <button onclick="editarCarta()" class="flex-1 py-3 bg-white/40 text-zinc-800 rounded-2xl font-bold text-sm hover:bg-white transition-colors flex items-center justify-center gap-2 shadow-sm border border-black/5 active:scale-95">
+           <i data-lucide="pencil" class="w-4 h-4"></i> Editar
+         </button>
+         <button onclick="excluirCarta()" class="flex-1 py-3 bg-red-50 text-red-500 rounded-2xl font-bold text-sm hover:bg-red-100 transition-colors flex items-center justify-center gap-2 shadow-sm border border-red-100 active:scale-95">
+           <i data-lucide="trash-2" class="w-4 h-4"></i> Excluir
+         </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ==========================================
+       JAVASCRIPT: ARQUITETURA CENTRALIZADA
+       ========================================== -->
+  <script>
+    /* =========================================================
+       1. ESTADO GLOBAL & CONSTANTES
+       ========================================================= */
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxNuvqDvaXvptI7vot-h4Y0TdyBrnSXLDsaG20aa-9LhA5oas8JztfUqzZcrJnZB4It/exec';
+    
+    // Navegação UI
+    let abaAtual = 'dates';
+    let subAbaAtual = 'cartas';
+    
+    // Sessão
+    let usuarioLogado = "";
+    
+    // Banco de Dados Local
+    let DB = { dates: [], cartas: [], musicas: [] };
+    
+    // Variáveis Temporárias
+    let imagemBase64Temp = ""; 
+    let fotosPosDateTemp = [];
+    let corSelecionada = '#FFF1F2'; // Padrão Carta
+    let tipoHorarioSelecionado = 'dia_hora'; // Padrão Date
+    let cartaAbertaAtual = null;
+
+    // Travas (Locks) Anti Duplo-Clique
+    let isLoading = false;
+    let salvandoCarta = false;
+    let excluindoCarta = false;
+    let salvandoDate = false;
+    let excluindoDate = false;
+    let salvandoPosDate = false;
+
+    /* =========================================================
+       2. INICIALIZAÇÃO & FUNÇÕES AUXILIARES
+       ========================================================= */
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      document.getElementById('carta-data').value = hojeLocalISO();
+      
+      const pinSalvo = localStorage.getItem('casal_auth_pin');
+      usuarioLogado = localStorage.getItem('casal_user_name');
+
+      if (pinSalvo) {
+        document.getElementById('pin-screen').classList.add('hidden');
+        if (!usuarioLogado || usuarioLogado === "null") {
+          mostrarTelaIdentidade();
+        } else {
+          iniciarApp();
+        }
+      } else {
+        setTimeout(() => {
+           document.getElementById('pin-screen').classList.remove('opacity-0');
+        }, 50);
+      }
+    });
+
+    /**
+     * Resolve o bug de Timezone (Fuso Horário) no JS 
+     * Retorna Data Limpa 'YYYY-MM-DD'
+     */
+    function hojeLocalISO() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function toggleLoader(show) {
+        isLoading = show;
+        const loader = document.getElementById('global-loader');
+        if(show) {
+            loader.classList.remove('hidden');
+            setTimeout(() => loader.style.opacity = '1', 10);
+        } else {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.classList.add('hidden'), 300);
+        }
+    }
+
+    function mostrarNotificacao(msg, tipo = 'info') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      
+      const icon = toast.querySelector('i');
+      if (tipo === 'erro') {
+          icon.setAttribute('data-lucide', 'alert-circle');
+          toast.classList.replace('bg-zinc-900', 'bg-brandred');
+      } else if (tipo === 'sucesso') {
+          icon.setAttribute('data-lucide', 'check-circle-2');
+          toast.classList.replace('bg-brandred', 'bg-zinc-900');
+      } else {
+          icon.setAttribute('data-lucide', 'bell');
+          toast.classList.replace('bg-brandred', 'bg-zinc-900');
+      }
+      lucide.createIcons();
+
+      toast.classList.remove('opacity-0', '-translate-y-24');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', '-translate-y-24');
+      }, 4000);
+    }
+
+    /* =========================================================
+       3. AUTENTICAÇÃO E SESSÃO
+       ========================================================= */
+    function verificarPINEnter(e) {
+      if (e.key === 'Enter') { e.preventDefault(); verificarPIN(); }
+    }
+
+    async function verificarPIN() {
+      const pinDigitado = document.getElementById('pin-input').value;
+      
+      if (pinDigitado.length < 1) {
+         animarErroPIN("Por favor, digite a senha.");
+         return;
+      }
+      
+      const btn = document.getElementById('btn-entrar-pin');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<div class="loader !w-5 !h-5 !border-2 !border-zinc-400 !border-t-white"></div>';
+      
+      try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ pin: pinDigitado, action: 'validarPIN', data: {} })
+        });
+        
+        const json = await response.json();
+        
+        if (json.status === 'error' && json.message.includes('PIN Inválido')) {
+            animarErroPIN("Senha incorreta.");
+            btn.innerHTML = originalText;
+            return;
+        }
+        
+        procederAcesso(pinDigitado);
+      } catch (e) {
+         procederAcesso(pinDigitado); // Assume falha de rota mas PIN correto se falhar no meio
+      }
+    }
+
+    function procederAcesso(pin) {
+        localStorage.setItem('casal_auth_pin', pin);
+        const pinScreen = document.getElementById('pin-screen');
+        pinScreen.style.opacity = '0';
+        setTimeout(() => {
+            pinScreen.classList.add('hidden');
+            if(!usuarioLogado || usuarioLogado === "null") {
+                mostrarTelaIdentidade();
+            } else {
+                iniciarApp();
+            }
+        }, 300);
+    }
+
+    function animarErroPIN(msg) {
+        const erroMsg = document.getElementById('pin-erro');
+        erroMsg.innerText = msg || "Senha incorreta.";
+        erroMsg.classList.remove('opacity-0');
+        document.getElementById('pin-input').classList.add('animate-pulse', 'border-brandred');
+        
+        setTimeout(() => {
+            erroMsg.classList.add('opacity-0');
+            document.getElementById('pin-input').classList.remove('animate-pulse', 'border-brandred');
+        }, 3000);
+    }
+
+    function mostrarTelaIdentidade() {
+        document.getElementById('identity-screen').classList.remove('hidden');
+    }
+
+    function definirUsuario(nome) {
+      usuarioLogado = nome;
+      localStorage.setItem('casal_user_name', nome);
+      document.getElementById('identity-screen').classList.add('hidden');
+      iniciarApp();
+    }
+
+    function fazerLogout() {
+        if(confirm("Deseja sair e remover a senha guardada neste dispositivo?")) {
+            localStorage.removeItem('casal_auth_pin');
+            localStorage.removeItem('casal_user_name');
+            window.location.reload();
+        }
+    }
+
+    function iniciarApp() {
+      document.getElementById('app').classList.remove('hidden');
+      document.getElementById('welcome-msg').innerText = `Oiii, ${usuarioLogado} 🤍`;
+      carregarDadosDaNuveem();
+    }
+
+    /* =========================================================
+       4. CONEXÃO COM O BACKEND (APPS SCRIPT)
+       ========================================================= */
+    async function carregarDadosDaNuveem() {
+      toggleLoader(true);
+      try {
+        const urlFrequinha = APPS_SCRIPT_URL + '?t=' + new Date().getTime();
+        const response = await fetch(urlFrequinha);
+        const json = await response.json();
+        
+        if (json.status === 'success') {
+          DB.dates = json.dates || [];
+          DB.cartas = json.cartas || [];
+          DB.musicas = json.musicas || [];
+          renderizarTudo();
+        } else {
+          mostrarNotificacao("Erro ao ler dados: " + json.message, "erro");
+        }
+      } catch (error) {
+        mostrarNotificacao("Problema de conexão. Tente recarregar a página.", "erro");
+        console.error("Erro no fetch GET:", error);
+      } finally {
+        toggleLoader(false);
+      }
+    }
+
+    async function enviarParaBackend(action, payload, showLoader = true) {
+      if(showLoader) toggleLoader(true);
+      const pin = localStorage.getItem('casal_auth_pin');
+      
+      try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ pin: pin, action: action, data: payload })
+        });
+        
+        const json = await response.json();
+        
+        if (json.status === 'success') {
+          return json.data || true; // Agora retornamos o objeto data inteiro se existir
+        } else {
+          if(json.message && json.message.includes("PIN Inválido")) {
+              mostrarNotificacao("Sessão expirada. A senha pode ter sido alterada.", "erro");
+              setTimeout(fazerLogout, 2500);
+          } else {
+              mostrarNotificacao(json.message || "Erro desconhecido.", "erro");
+          }
+          return false;
+        }
+      } catch (error) {
+        mostrarNotificacao("Erro de conexão com servidor. Tente novamente.", "erro");
+        return false;
+      } finally {
+        if(showLoader) toggleLoader(false);
+      }
+    }
+
+    /* =========================================================
+       5. CONTROLADORES E REDERIZADORES (UI)
+       ========================================================= */
+    function renderizarTudo() {
+      renderizarDates();
+      renderizarCartas();
+      renderizarMusicas();
+    }
+
+    // ========== 5.1 DATES ==========
+    
+    function formatarDataAmigavel(dataISO, tipoHorario) {
+        if (tipoHorario === 'aberto' || !dataISO) return "Data a combinar";
+
+        const dataObj = new Date(dataISO);
+        if(isNaN(dataObj)) return "Data a definir";
+
+        if (tipoHorario === 'dia') {
+            dataObj.setMinutes(dataObj.getMinutes() + dataObj.getTimezoneOffset());
+        }
+        
+        const hoje = new Date();
+        const amanha = new Date(); amanha.setDate(hoje.getDate() + 1);
+        
+        const isHoje = dataObj.getDate() === hoje.getDate() && dataObj.getMonth() === hoje.getMonth() && dataObj.getFullYear() === hoje.getFullYear();
+        const isAmanha = dataObj.getDate() === amanha.getDate() && dataObj.getMonth() === amanha.getMonth() && dataObj.getFullYear() === amanha.getFullYear();
+
+        if (tipoHorario === 'dia') {
+            if (isHoje) return "Hoje";
+            if (isAmanha) return "Amanhã";
+            return dataObj.toLocaleDateString('pt-BR', {day:'2-digit', month:'long', year:'numeric'});
+        }
+        
+        const hora = dataObj.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+        
+        if (isHoje) return `Hoje às ${hora}`;
+        if (isAmanha) return `Amanhã às ${hora}`;
+        
+        return dataObj.toLocaleDateString('pt-BR', {day:'2-digit', month:'short'}) + ' às ' + hora;
+    }
+
+    function timestampOrdenacaoDate(date) {
+        if (!date.data_hora || date.tipo_horario === 'aberto') return Infinity; 
+        const t = new Date(date.data_hora).getTime();
+        return isNaN(t) ? Infinity : t;
+    }
+
+    function selecionarTipoHorario(tipo) {
+      tipoHorarioSelecionado = tipo;
+      document.querySelectorAll('.tipo-horario-btn').forEach(btn => {
+        if (btn.dataset.tipo === tipo) {
+          btn.className = "tipo-horario-btn py-2.5 px-1 rounded-xl text-[11px] font-bold border-2 transition-all border-brandred bg-rose-50 text-brandred";
+        } else {
+          btn.className = "tipo-horario-btn py-2.5 px-1 rounded-xl text-[11px] font-bold border-2 transition-all border-zinc-200 text-zinc-500 hover:border-zinc-300";
+        }
+      });
+      document.getElementById('wrap-data-dia').classList.toggle('hidden', tipo !== 'dia');
+      document.getElementById('wrap-data-hora').classList.toggle('hidden', tipo !== 'dia_hora');
+      document.getElementById('msg-tipo-aberto').classList.toggle('hidden', tipo !== 'aberto');
+    }
+
+    function processarImagem(event) {
+      const file = event.target.files[0];
+      if (file) {
+        if(file.size > 2 * 1024 * 1024) {
+             mostrarNotificacao("A foto é muito pesada. Escolha uma de até 2MB.", "erro");
+             event.target.value = '';
+             return;
+        }
+
+        document.getElementById('upload-placeholder').style.display = 'none';
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          imagemBase64Temp = e.target.result;
+          const preview = document.getElementById('preview-foto');
+          preview.src = imagemBase64Temp;
+          preview.classList.remove('hidden');
+          document.getElementById('btn-remove-foto').classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function removerImagem() {
+        imagemBase64Temp = "";
+        document.getElementById('date-foto-upload').value = '';
+        document.getElementById('preview-foto').classList.add('hidden');
+        document.getElementById('preview-foto').src = '';
+        document.getElementById('btn-remove-foto').classList.add('hidden');
+        document.getElementById('upload-placeholder').style.display = 'flex';
+    }
+
+    function renderizarDates() {
+      const cFuturos = document.getElementById('lista-dates-futuros');
+      const cHistorico = document.getElementById('lista-dates-historico');
+      const containerFuturos = document.getElementById('container-dates-futuros');
+      const containerHistorico = document.getElementById('container-dates-historico');
+      const emptyState = document.getElementById('dates-empty');
+
+      cFuturos.innerHTML = ''; cHistorico.innerHTML = '';
+
+      if (DB.dates.length === 0) {
+          emptyState.style.display = 'flex';
+          containerFuturos.style.display = 'none';
+          containerHistorico.style.display = 'none';
+          return;
+      }
+
+      emptyState.style.display = 'none';
+      let hasFuturo = false, hasHistorico = false;
+
+      const datesOrdenados = [...DB.dates].sort((a, b) => timestampOrdenacaoDate(a) - timestampOrdenacaoDate(b));
+
+      datesOrdenados.forEach(date => {
+        const isHistorico = date.status === "Realizado";
+        if(isHistorico) hasHistorico = true; else hasFuturo = true;
+        
+        const horarioText = formatarDataAmigavel(date.data_hora, date.tipo_horario);
+        const ehMeu = date.autor === usuarioLogado;
+
+        let fotosExtraArr = [];
+        try { fotosExtraArr = date.fotos_extra ? JSON.parse(date.fotos_extra) : []; } catch(e) { fotosExtraArr = []; }
+        
+        let cardClass = "bg-white rounded-3xl p-6 shadow-sm border relative overflow-hidden transition-all duration-300 flex flex-col h-full ";
+        let badgeHtml = "";
+        let actionsHtml = "";
+        let extraHtml = "";
+
+        if (isHistorico) {
+            cardClass += "border-zinc-200 bg-zinc-50/70";
+            badgeHtml = `<span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-zinc-200 text-zinc-600 shadow-inner flex items-center gap-1"><i data-lucide="check-check" class="w-3 h-3"></i> Memória</span>`;
+
+            if (date.descricao_pos) {
+                extraHtml += `
+                  <div class="text-sm text-zinc-600 leading-relaxed bg-white p-3.5 rounded-2xl border border-zinc-100 mt-3">
+                    <span class="text-[10px] font-bold uppercase text-zinc-400 block mb-1">Como foi</span>${date.descricao_pos}
+                  </div>
+                `;
+            }
+            if (fotosExtraArr.length > 0) {
+                extraHtml += `
+                  <div class="flex gap-2 mt-3 overflow-x-auto no-scrollbar pb-1">
+                    ${fotosExtraArr.map(url => `<img src="${url}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0 shadow-sm border border-zinc-100">`).join('')}
+                  </div>
+                `;
+            }
+
+            actionsHtml = `
+              <button onclick="abrirModalPosDate('${date.id}')" class="w-full py-3 mt-4 bg-white border-2 border-zinc-100 text-zinc-600 hover:border-brandred hover:text-brandred rounded-2xl text-xs font-bold active:scale-[0.98] transition flex items-center justify-center gap-2">
+                <i data-lucide="pencil-line" class="w-4 h-4"></i> Atualizar Date
+              </button>
+            `;
+        } else if (date.status === 'Aceito') {
+            cardClass += "border-emerald-100 ring-1 ring-emerald-50 hover:shadow-md hover:-translate-y-1";
+            badgeHtml = `<span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 shadow-inner flex items-center gap-1"><i data-lucide="calendar-check" class="w-3 h-3"></i> Confirmado</span>`;
+            
+            actionsHtml = `
+              <button onclick="mudarStatusDate('${date.id}', 'Realizado')" class="w-full py-3 mt-4 bg-white border-2 border-zinc-100 text-zinc-600 hover:border-zinc-300 hover:text-zinc-900 rounded-2xl text-xs font-bold active:scale-[0.98] transition flex items-center justify-center gap-2">
+                <i data-lucide="camera" class="w-4 h-4"></i> Marcar como Realizado
+              </button>
+            `;
+        } else if (date.status === 'Recusado') {
+            cardClass += "border-zinc-200 bg-zinc-50/60 opacity-90";
+            badgeHtml = `<span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-red-50 text-red-500 border border-red-100 flex items-center gap-1"><i data-lucide="x-circle" class="w-3 h-3"></i> Recusado</span>`;
+
+            actionsHtml = `
+              <button onclick="excluirDateConfirm('${date.id}')" class="w-full py-3 mt-4 bg-white border-2 border-red-100 text-red-500 hover:bg-red-50 rounded-2xl text-xs font-bold active:scale-[0.98] transition flex items-center justify-center gap-2">
+                <i data-lucide="trash-2" class="w-4 h-4"></i> Excluir Registro
+              </button>
+            `;
+        } else {
+            cardClass += "border-rose-100 ring-1 ring-rose-50 hover:shadow-md hover:-translate-y-1";
+            badgeHtml = `<span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-100 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> Analisando</span>`;
+            
+            if (!ehMeu) {
+                actionsHtml = `
+                  <div class="grid grid-cols-2 gap-2 mt-4">
+                    <button onclick="mudarStatusDate('${date.id}', 'Aceito')" class="col-span-2 py-3 bg-zinc-900 text-white rounded-2xl text-xs font-bold shadow-md hover:bg-brandred hover:shadow-lg active:scale-[0.98] transition flex items-center justify-center gap-2">
+                      <i data-lucide="heart" class="w-4 h-4"></i> Topar Date!
+                    </button>
+                    <button onclick="abrirModalEditarDate('${date.id}')" class="py-2.5 bg-white border-2 border-zinc-100 text-zinc-600 hover:border-zinc-300 rounded-2xl text-[11px] font-bold active:scale-[0.98] transition flex items-center justify-center gap-1.5">
+                      <i data-lucide="pencil" class="w-3.5 h-3.5"></i> Ajustar
+                    </button>
+                    <button onclick="recusarDateConfirm('${date.id}')" class="py-2.5 bg-white border-2 border-red-100 text-red-500 hover:bg-red-50 rounded-2xl text-[11px] font-bold active:scale-[0.98] transition flex items-center justify-center gap-1.5">
+                      <i data-lucide="x" class="w-3.5 h-3.5"></i> Recusar
+                    </button>
+                  </div>
+                `;
+            } else {
+                actionsHtml = `<div class="mt-4 text-center p-3 bg-zinc-50 rounded-2xl border border-zinc-100 text-[11px] text-zinc-500 font-medium">Aguardando a resposta do seu amor 🤍</div>`;
+            }
+        }
+
+        const card = document.createElement('div');
+        card.className = cardClass;
+        card.innerHTML = `
+          ${date.foto_url ? `
+            <div class="relative w-full h-44 mb-4 rounded-2xl overflow-hidden shadow-sm">
+                <img src="${date.foto_url}" class="w-full h-full object-cover transition-transform duration-700 hover:scale-105 ${isHistorico ? 'grayscale-[40%]' : ''}">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+            </div>
+          ` : ''}
+          
+          <div class="flex-1 flex flex-col">
+              <div class="flex justify-between items-start mb-2 gap-2">
+                <div>
+                  <span class="text-[9px] font-bold uppercase tracking-widest text-zinc-500">Proposto por ${date.autor}</span>
+                  <h3 class="font-serif-romantic text-xl font-bold text-zinc-900 mt-0.5 leading-tight ${isHistorico ? 'text-zinc-700' : ''}">${date.local}</h3>
+                </div>
+                <div class="flex-shrink-0">${badgeHtml}</div>
+              </div>
+              
+              <div class="text-[13px] text-zinc-600 font-semibold flex items-center gap-1.5 py-2">
+                <i data-lucide="${isHistorico ? 'calendar-check-2' : 'calendar-days'}" class="w-4 h-4 ${isHistorico ? 'text-zinc-400' : 'text-brandred'}"></i> 
+                ${horarioText}
+              </div>
+
+              ${date.descricao ? `
+                <div class="text-sm text-zinc-600 leading-relaxed bg-zinc-50 p-3.5 rounded-2xl border border-zinc-100 mt-2 flex-1">
+                  ${date.descricao}
+                </div>
+              ` : '<div class="flex-1"></div>'}
+
+              ${extraHtml}
+          </div>
+          
+          ${actionsHtml}
+        `;
+
+        if (isHistorico) cHistorico.prepend(card); 
+        else cFuturos.appendChild(card);
+      });
+
+      containerFuturos.style.display = hasFuturo ? 'block' : 'none';
+      containerHistorico.style.display = hasHistorico ? 'block' : 'none';
+      
+      lucide.createIcons();
+    }
+
+    async function mudarStatusDate(id, novoStatus) {
+      const sucesso = await enviarParaBackend('atualizarStatusDate', { id: id, novoStatus: novoStatus });
+      if (sucesso) {
+        const date = DB.dates.find(d => d.id === id);
+        if (date) date.status = novoStatus;
+        renderizarDates(); 
+
+        if(novoStatus === 'Aceito') {
+            confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 }, colors: ['#E11D48', '#FF6B6B', '#FFD93D'] });
+            setTimeout(() => confetti({ particleCount: 100, spread: 100, origin: { y: 0.5 }, angle: 60 }), 250);
+            setTimeout(() => confetti({ particleCount: 100, spread: 100, origin: { y: 0.5 }, angle: 120 }), 400);
+            mostrarNotificacao("Date Confirmado! Prepare-se! ❤️", "sucesso");
+        } else if (novoStatus === 'Recusado') {
+            mostrarNotificacao("Date recusado.", "info");
+        } else {
+            mostrarNotificacao("Momento guardado nas memórias.", "sucesso");
+        }
+        carregarDadosDaNuveem();
+      }
+    }
+
+    function recusarDateConfirm(id) {
+      if (confirm("Recusar esse date? Dá pra excluir o registro depois de recusado.")) {
+        mudarStatusDate(id, 'Recusado');
+      }
+    }
+
+    async function excluirDate(id) {
+      if(excluindoDate) return;
+      excluindoDate = true;
+      
+      const sucesso = await enviarParaBackend('excluirDate', { id: id });
+      if (sucesso) {
+        DB.dates = DB.dates.filter(d => d.id !== id);
+        renderizarDates();
+        mostrarNotificacao("Registro excluído.", "sucesso");
+        carregarDadosDaNuveem();
+      }
+      excluindoDate = false;
+    }
+
+    function excluirDateConfirm(id) {
+      if (confirm("Excluir esse date recusado definitivamente? Essa ação não pode ser desfeita.")) {
+        excluirDate(id);
+      }
+    }
+
+    function abrirModalNovoDate() {
+      document.getElementById('form-date').reset();
+      document.getElementById('date-edit-id').value = '';
+      document.getElementById('modal-date-titulo').innerText = 'Novo Encontro';
+      document.getElementById('btn-submit-date-text').innerText = 'Enviar Proposta';
+      document.getElementById('wrap-date-foto').classList.remove('hidden');
+      removerImagem();
+      selecionarTipoHorario('dia_hora');
+      abrirModal('modal-date-content', 'modal-date');
+    }
+
+    function abrirModalEditarDate(id) {
+      const date = DB.dates.find(d => d.id === id);
+      if (!date) return;
+
+      document.getElementById('form-date').reset();
+      document.getElementById('date-edit-id').value = date.id;
+      document.getElementById('modal-date-titulo').innerText = 'Ajustar e Aceitar';
+      document.getElementById('btn-submit-date-text').innerText = 'Aceitar com Ajustes';
+      document.getElementById('date-local').value = date.local || '';
+      document.getElementById('date-desc').value = date.descricao || '';
+      document.getElementById('wrap-date-foto').classList.add('hidden'); // Foto original não muda aqui
+      removerImagem();
+
+      const tipo = date.tipo_horario || 'dia_hora';
+      selecionarTipoHorario(tipo);
+      
+      if (tipo === 'dia' && date.data_hora) {
+        document.getElementById('date-input-dia').value = new Date(date.data_hora).toISOString().split('T')[0];
+      } else if (tipo === 'dia_hora' && date.data_hora) {
+        const d = new Date(date.data_hora);
+        if (!isNaN(d)) document.getElementById('date-input-datetime').value = d.toISOString().slice(0,16);
+      }
+
+      abrirModal('modal-date-content', 'modal-date');
+    }
+
+    async function salvarNovoDate() {
+      if(salvandoDate) return;
+      
+      const local = document.getElementById('date-local').value;
+      if (!local) return;
+
+      let data_hora = '';
+      if (tipoHorarioSelecionado === 'dia') {
+        data_hora = document.getElementById('date-input-dia').value;
+        if (!data_hora) { mostrarNotificacao("Escolha o dia do date.", "erro"); return; }
+      } else if (tipoHorarioSelecionado === 'dia_hora') {
+        data_hora = document.getElementById('date-input-datetime').value;
+        if (!data_hora) { mostrarNotificacao("Escolha o dia e o horário do date.", "erro"); return; }
+      }
+
+      salvandoDate = true;
+      const btnSubmit = document.getElementById('btn-submit-date');
+      const textOriginal = btnSubmit.innerHTML;
+      btnSubmit.innerHTML = '<div class="loader !w-5 !h-5 !border-white !border-t-transparent m-auto"></div>';
+
+      try {
+        const editId = document.getElementById('date-edit-id').value;
+        const descricao = document.getElementById('date-desc').value;
+
+        if (editId) {
+          const payload = { id: editId, local: local, tipo_horario: tipoHorarioSelecionado, data_hora: data_hora, descricao: descricao };
+          const sucesso = await enviarParaBackend('editarAceitarDate', payload, false); // Loader manual
+          if (sucesso) {
+            const date = DB.dates.find(d => d.id === editId);
+            if (date) Object.assign(date, payload, { status: 'Aceito' });
+            renderizarDates();
+            document.getElementById('form-date').reset();
+            fecharModais();
+            confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 }, colors: ['#E11D48', '#FF6B6B', '#FFD93D'] });
+            mostrarNotificacao("Date ajustado e aceito! ❤️", "sucesso");
+            carregarDadosDaNuveem();
+          }
+          return;
+        }
+
+        const payload = {
+          id: "d_" + Date.now(),
+          autor: usuarioLogado,
+          local: local,
+          tipo_horario: tipoHorarioSelecionado,
+          data_hora: data_hora,
+          descricao: descricao,
+          foto_url: imagemBase64Temp,
+          status: "Pendente"
+        };
+
+        const sucesso = await enviarParaBackend('salvarDate', payload, false); // Loader manual
+        
+        if (sucesso) {
+          DB.dates.push(payload);
+          renderizarDates(); 
+          removerImagem();
+          document.getElementById('form-date').reset();
+          fecharModais();
+          mostrarNotificacao("Nova proposta enviada!", "sucesso");
+          carregarDadosDaNuveem(); 
+        }
+      } finally {
+        salvandoDate = false;
+        btnSubmit.innerHTML = textOriginal;
+      }
+    }
+
+    function abrirModalPosDate(id) {
+      const date = DB.dates.find(d => d.id === id);
+      if (!date) return;
+
+      document.getElementById('form-pos-date').reset();
+      document.getElementById('pos-date-id').value = id;
+      document.getElementById('pos-date-desc').value = date.descricao_pos || '';
+      fotosPosDateTemp = [];
+      document.getElementById('preview-fotos-pos-date').innerHTML = '';
+
+      let fotosExistentes = [];
+      try { fotosExistentes = date.fotos_extra ? JSON.parse(date.fotos_extra) : []; } catch(e) { fotosExistentes = []; }
+      const galeria = document.getElementById('galeria-pos-date-existente');
+      
+      galeria.innerHTML = fotosExistentes.length > 0
+        ? fotosExistentes.map(url => `<img src="${url}" class="w-16 h-16 rounded-xl object-cover shadow-sm border border-zinc-100">`).join('')
+        : '<p class="text-xs text-zinc-400">Nenhuma foto ainda.</p>';
+
+      abrirModal('modal-pos-date-content', 'modal-pos-date');
+      lucide.createIcons();
+    }
+
+    function processarImagensPosDate(event) {
+      const files = Array.from(event.target.files);
+      const preview = document.getElementById('preview-fotos-pos-date');
+
+      files.forEach(file => {
+        if (file.size > 2 * 1024 * 1024) {
+          mostrarNotificacao(`"${file.name}" é muito pesada (máx 2MB).`, "erro");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          fotosPosDateTemp.push(e.target.result);
+          const img = document.createElement('img');
+          img.src = e.target.result;
+          img.className = "w-16 h-16 rounded-xl object-cover shadow-sm border border-zinc-100";
+          preview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
+      event.target.value = '';
+    }
+
+    async function salvarPosDate() {
+      if(salvandoPosDate) return;
+      salvandoPosDate = true;
+      
+      const btnSubmit = document.getElementById('btn-submit-pos-date');
+      const textoOrig = btnSubmit.innerHTML;
+      btnSubmit.innerHTML = '<div class="loader !w-5 !h-5 !border-white !border-t-transparent m-auto"></div>';
+
+      try {
+        const id = document.getElementById('pos-date-id').value;
+        const descricao_pos = document.getElementById('pos-date-desc').value;
+  
+        const payload = { id: id, descricao_pos: descricao_pos, novasFotos: fotosPosDateTemp };
+        const resultado = await enviarParaBackend('atualizarPosDate', payload, false);
+  
+        if (resultado) {
+          const date = DB.dates.find(d => d.id === id);
+          if (date) {
+            date.descricao_pos = descricao_pos;
+            let fotosAtuais = [];
+            try { fotosAtuais = date.fotos_extra ? JSON.parse(date.fotos_extra) : []; } catch(e) { fotosAtuais = []; }
+            const novasUrls = (resultado.novasFotosUrls && resultado.novasFotosUrls.length > 0) ? resultado.novasFotosUrls : fotosPosDateTemp;
+            date.fotos_extra = JSON.stringify(fotosAtuais.concat(novasUrls));
+          }
+          fotosPosDateTemp = [];
+          renderizarDates(); 
+  
+          fecharModais();
+          mostrarNotificacao("Memória atualizada!", "sucesso");
+          carregarDadosDaNuveem();
+        }
+      } finally {
+        salvandoPosDate = false;
+        btnSubmit.innerHTML = textoOrig;
+      }
+    }
+
+
+    // ========== 5.2 CARTAS ==========
+    
+    function selecionarCor(hex, element) {
+      corSelecionada = hex;
+      const btns = document.querySelectorAll('.color-btn');
+      btns.forEach(btn => {
+          btn.setAttribute('aria-checked', 'false');
+          if(btn.style.backgroundColor !== 'rgb(255, 241, 242)') { 
+             btn.classList.replace('border-brandred', 'border-zinc-200');
+          } else {
+             btn.classList.remove('border-brandred');
+             btn.classList.add('border-zinc-200');
+          }
+          btn.querySelector('.check-icon').classList.add('hidden');
+      });
+
+      element.setAttribute('aria-checked', 'true');
+      element.classList.remove('border-zinc-200');
+      element.classList.add('border-brandred');
+      element.querySelector('.check-icon').classList.remove('hidden');
+    }
+
+    function renderizarCartas() {
+      const container = document.getElementById('lista-cartas');
+      const emptyState = document.getElementById('cartas-empty');
+      container.innerHTML = '';
+
+      if (DB.cartas.length === 0) {
+          emptyState.style.display = 'flex';
+          container.style.display = 'none';
+          return;
+      }
+      
+      emptyState.style.display = 'none';
+      container.style.display = 'grid';
+
+      DB.cartas.forEach((carta, index) => {
+        const d = new Date(carta.data_entrega);
+        d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+        const dataFormatada = isNaN(d) ? carta.data_entrega : d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+
+        const card = document.createElement('div');
+        card.style.backgroundColor = carta.cor || '#FFF1F2';
+        const rot = index % 2 === 0 ? '-rotate-1' : 'rotate-1';
+        
+        card.className = `rounded-3xl p-6 shadow-sm border border-black/5 flex flex-col h-full cursor-pointer active:scale-[0.98] hover:shadow-lg transition-all duration-300 transform md:hover:scale-[1.02] md:hover:z-10 md:${rot}`;
+        card.onclick = () => abrirLeituraCarta(carta);
+        
+        card.innerHTML = `
+          <div class="flex justify-between items-start mb-4">
+            <span class="text-[10px] font-bold uppercase tracking-widest text-zinc-800/60 bg-black/5 px-2.5 py-1 rounded-md">${dataFormatada}</span>
+            <div class="w-8 h-8 rounded-full bg-white/40 flex items-center justify-center backdrop-blur-sm border border-white/50 shadow-sm text-zinc-600">
+                <i data-lucide="mail" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="flex-1">
+              <h4 class="font-serif-romantic text-2xl font-bold text-zinc-900 leading-tight mb-2">${carta.titulo}</h4>
+              <p class="text-sm text-zinc-700/90 font-serif-romantic line-clamp-4 italic leading-relaxed mix-blend-multiply">${carta.conteudo}</p>
+          </div>
+          <div class="pt-4 mt-2 border-t border-black/10 flex items-center justify-between text-xs font-bold text-zinc-800">
+            <span class="font-serif-romantic italic">De: ${carta.autor}</span>
+            <span class="flex items-center gap-1 opacity-60 hover:opacity-100 transition">Ler <i data-lucide="arrow-right" class="w-3 h-3"></i></span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    function abrirLeituraCarta(carta) {
+      cartaAbertaAtual = carta;
+
+      document.getElementById('leitura-titulo').innerText = carta.titulo;
+      document.getElementById('leitura-autor').innerText = carta.autor;
+
+      const d = new Date(carta.data_entrega);
+      d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+      document.getElementById('leitura-data').innerText = isNaN(d) ? carta.data_entrega : d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+
+      document.getElementById('leitura-conteudo').innerText = carta.conteudo;
+      document.getElementById('leitura-card-container').style.backgroundColor = carta.cor || '#FFF1F2';
+
+      const actions = document.getElementById('leitura-actions');
+      if (carta.autor === usuarioLogado) {
+        actions.classList.remove('hidden');
+      } else {
+        actions.classList.add('hidden');
+      }
+
+      const modal = document.getElementById('modal-leitura-carta');
+      const card = document.getElementById('leitura-card-container');
+
+      document.body.style.overflow = 'hidden';
+      modal.classList.remove('hidden');
+
+      void modal.offsetWidth;
+
+      modal.classList.remove('opacity-0');
+      card.classList.replace('scale-95', 'scale-100');
+
+      lucide.createIcons();
+    }
+
+    function abrirModalCriacaoCarta() {
+      document.getElementById('form-carta').reset();
+      document.getElementById('carta-edit-id').value = '';
+      document.querySelector('#modal-carta-content h3').innerText = "Nova Carta";
+      document.querySelector('#modal-carta-content button[type="submit"]').innerHTML = "Selar Carta";
+      
+      document.getElementById('carta-data').value = hojeLocalISO(); 
+      
+      selecionarCor('#FFF1F2', document.querySelector('.color-btn'));
+      abrirModal('modal-carta-content', 'modal-carta');
+    }
+
+    function editarCarta() {
+      fecharModais();
+
+      setTimeout(() => {
+        document.getElementById('carta-edit-id').value = cartaAbertaAtual.id;
+        document.getElementById('carta-titulo').value = cartaAbertaAtual.titulo;
+        document.getElementById('carta-data').value = String(cartaAbertaAtual.data_entrega || '').slice(0, 10) || hojeLocalISO();
+        document.getElementById('carta-conteudo').value = cartaAbertaAtual.conteudo;
+
+        if (cartaAbertaAtual.cor) {
+          const btnCor = Array.from(document.querySelectorAll('.color-btn'))
+            .find(b => (b.getAttribute('onclick') || '').includes(cartaAbertaAtual.cor));
+          if (btnCor) selecionarCor(cartaAbertaAtual.cor, btnCor);
+        }
+
+        document.querySelector('#modal-carta-content h3').innerText = "Editar Carta";
+        document.querySelector('#modal-carta-content button[type="submit"]').innerText = "Salvar Alterações";
+
+        abrirModal('modal-carta-content', 'modal-carta');
+      }, 350);
+    }
+
+    function excluirCarta() {
+      if (excluindoCarta) return;
+      if (!confirm("Tem certeza que deseja apagar essa lembrança?")) return;
+
+      excluindoCarta = true;
+      const id = cartaAbertaAtual.id;
+      
+      const btnExcluir = document.querySelector('#leitura-actions button:nth-child(2)');
+      const textoOriginal = btnExcluir.innerHTML;
+      btnExcluir.innerHTML = '<div class="loader !w-4 !h-4 !border-red-500 !border-t-transparent m-auto"></div>';
+
+      enviarParaBackend('excluirCarta', { id: id }, false).then(sucesso => {
+        if (sucesso) {
+          DB.cartas = DB.cartas.filter(c => c.id !== id);
+          renderizarCartas();
+          fecharModais();
+          mostrarNotificacao("Carta excluída com sucesso.", "sucesso");
+          carregarDadosDaNuveem();
+        } else {
+          mostrarNotificacao("Falha ao excluir a carta.", "erro");
+        }
+      }).finally(() => {
+        excluindoCarta = false;
+        if(btnExcluir) btnExcluir.innerHTML = textoOriginal;
+      });
+    }
+
+    async function salvarNovaCarta() {
+      if (salvandoCarta) return; 
+
+      const titulo = document.getElementById('carta-titulo').value;
+      const data = document.getElementById('carta-data').value;
+      const conteudo = document.getElementById('carta-conteudo').value;
+      const editId = document.getElementById('carta-edit-id').value;
+
+      if (!titulo || !conteudo) return;
+
+      salvandoCarta = true;
+      
+      const btnSubmit = document.querySelector('#modal-carta-content button[type="submit"]');
+      const textoOriginal = btnSubmit.innerHTML;
+      btnSubmit.innerHTML = '<div class="loader !w-5 !h-5 !border-white !border-t-transparent m-auto"></div>';
+
+      const payload = {
+        id: editId || ("c_" + Date.now()),
+        titulo: titulo,
+        data_entrega: data,
+        autor: usuarioLogado,
+        cor: corSelecionada,
+        conteudo: conteudo
+      };
+
+      const action = editId ? 'editarCarta' : 'salvarCarta';
+      
+      try {
+        const sucesso = await enviarParaBackend(action, payload, false);
+
+        if (sucesso) {
+          if (editId) {
+              const index = DB.cartas.findIndex(c => c.id === editId);
+              if(index > -1) DB.cartas[index] = payload;
+          } else {
+              DB.cartas.push(payload);
+          }
+          
+          renderizarCartas();
+          document.getElementById('form-carta').reset();
+          document.getElementById('carta-edit-id').value = '';
+          fecharModais();
+          mostrarNotificacao(editId ? "Carta atualizada!" : "Carta selada e guardada!", "sucesso");
+          carregarDadosDaNuveem();
+        }
+      } finally {
+        salvandoCarta = false;
+        btnSubmit.innerHTML = textoOriginal;
+      }
+    }
+
+
+    // ========== 5.3 MÚSICAS E INTEGRAÇÃO YOUTUBE ==========
+
+    function renderizarMusicas(filtro = '') {
+      const container = document.getElementById('lista-musicas');
+      const emptyState = document.getElementById('musicas-empty');
+      container.innerHTML = '';
+
+      const filtradas = DB.musicas.filter(m => 
+        m.titulo.toLowerCase().includes(filtro.toLowerCase()) || 
+        m.artista.toLowerCase().includes(filtro.toLowerCase())
+      );
+
+      if (DB.musicas.length === 0) {
+          emptyState.style.display = 'flex';
+          container.style.display = 'none';
+          document.getElementById('busca-musica').parentElement.style.opacity = '0.3';
+          document.getElementById('busca-musica').disabled = true;
+          return;
+      }
+
+      emptyState.style.display = 'none';
+      container.style.display = 'grid';
+      document.getElementById('busca-musica').parentElement.style.opacity = '1';
+      document.getElementById('busca-musica').disabled = false;
+
+      filtradas.forEach(musica => {
+        const card = document.createElement('a');
+        card.href = `https://music.youtube.com/watch?v=${musica.video_id}`;
+        card.target = "_blank";
+        card.className = "bg-white p-3 pr-4 rounded-2xl border border-zinc-200/60 shadow-sm flex items-center gap-4 active:scale-[0.98] hover:border-brandred/30 hover:shadow-md transition-all group relative overflow-hidden";
+        
+        card.innerHTML = `
+          <div class="absolute inset-0 bg-gradient-to-r from-rose-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          
+          <div class="relative w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden shadow-sm z-10 border border-zinc-100">
+            <img src="${musica.capa_url}" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
+              <i data-lucide="play" class="w-6 h-6 text-white fill-white ml-0.5"></i>
+            </div>
+          </div>
+          
+          <div class="flex-1 min-w-0 z-10">
+            <h5 class="text-[13px] font-bold text-zinc-900 leading-tight truncate pr-2 group-hover:text-brandred transition-colors">${musica.titulo}</h5>
+            <span class="text-[11px] text-zinc-500 truncate block mt-0.5">${musica.artista}</span>
+          </div>
+          
+          <div class="flex flex-col items-end gap-1 flex-shrink-0 z-10">
+            <div class="w-8 h-8 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-400 group-hover:bg-brandred group-hover:text-white group-hover:border-brandred transition-colors">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    function filtrarMusicas() {
+      const busca = document.getElementById('busca-musica').value;
+      renderizarMusicas(busca);
+    }
+
+    async function realizarBuscaMusica() {
+      const input = document.getElementById('yt-search-input').value;
+      const container = document.getElementById('yt-search-results');
+      if (!input) return;
+
+      container.innerHTML = `
+        <div class="flex flex-col items-center justify-center py-6">
+            <div class="loader mb-2 !w-6 !h-6 !border-zinc-300 !border-t-brandred"></div>
+            <p class="text-xs text-zinc-500">Buscando na API do YouTube...</p>
+        </div>`;
+
+      const pin = localStorage.getItem('casal_auth_pin');
+      
+      try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ pin: pin, action: 'buscarYouTube', data: { query: input } })
+        });
+        const json = await response.json();
+        
+        if (json.status === 'success' && json.data.length > 0) {
+          container.innerHTML = '';
+          json.data.forEach(item => {
+            const resultHtml = `
+              <div class="p-3 bg-white border border-zinc-100 rounded-xl flex items-center justify-between gap-4 shadow-sm hover:border-brandred/30 transition-colors">
+                <img src="${item.capa_url}" class="w-12 h-12 rounded-lg object-cover shadow-sm">
+                <div class="flex-1 overflow-hidden">
+                  <div class="font-bold text-sm text-zinc-800 truncate leading-tight">${item.titulo}</div>
+                  <div class="text-[11px] text-zinc-500 truncate mt-0.5">${item.artista}</div>
+                </div>
+                <button onclick='adicionarMusicaDaBusca(${JSON.stringify(item).replace(/'/g, "&apos;")}, this)' class="px-4 py-2 bg-zinc-900 text-white font-bold rounded-xl text-xs active:scale-95 hover:bg-brandred transition-colors shadow-sm whitespace-nowrap">
+                   Dedicar
+                </button>
+              </div>
+            `;
+            container.innerHTML += resultHtml;
+          });
+        } else {
+          container.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-6 text-zinc-500">
+               <i data-lucide="search-x" class="w-8 h-8 mb-2 opacity-50"></i>
+               <p class="text-sm font-medium">Nada encontrado.</p>
+               <p class="text-xs">Tente buscar por "Nome da música - Artista"</p>
+            </div>`;
+          lucide.createIcons();
+        }
+      } catch (e) {
+        container.innerHTML = `<p class="text-red-500 text-center py-4 text-sm font-medium">Ocorreu um erro de rede.</p>`;
+      }
+    }
+
+    async function adicionarMusicaDaBusca(itemData, btnNode) {
+      if(btnNode.disabled) return; 
+      
+      btnNode.disabled = true;
+      const textoOriginal = btnNode.innerHTML;
+      btnNode.innerHTML = '<div class="loader !w-4 !h-4 !border-white !border-t-brandred m-auto"></div>';
+
+      const payload = {
+        id: "m_" + Date.now(),
+        titulo: itemData.titulo,
+        artista: itemData.artista,
+        duracao: "YouTube", 
+        capa_url: itemData.capa_url,
+        video_id: itemData.video_id
+      };
+
+      const resposta = await enviarParaBackend('salvarMusica', payload, false);
+
+      if (resposta) {
+        DB.musicas.push({ ...payload, data: new Date().toISOString().split('T')[0] });
+        renderizarMusicas(); 
+
+        document.getElementById('yt-search-input').value = "";
+        document.getElementById('yt-search-results').innerHTML = `
+          <div class="flex flex-col items-center justify-center py-8 text-zinc-400">
+             <i data-lucide="youtube" class="w-8 h-8 mb-2 opacity-50 text-red-500"></i>
+             <p class="text-xs text-center px-4">A música será guardada no espaço e, se configurado, enviada para o YouTube Music.</p>
+          </div>`;
+        lucide.createIcons();
+        fecharModais();
+        
+        // --- GUIA DE DEBUG DO YOUTUBE DIRETO NA TELA ---
+        // Se a resposta contiver um yt_status com a palavra "Erro" (que configuramos no Apps Script)
+        if(resposta.yt_status && resposta.yt_status.includes("Erro")) {
+            console.error("YOUTUBE DEBUG:", resposta.yt_status);
+            mostrarNotificacao(`Salva no espaço! Mas erro no YT: ${resposta.yt_status}`, "erro");
+        } else if (resposta.yt_status && resposta.yt_status.includes("ID da playlist")) {
+            mostrarNotificacao(`Salva! Mas falta configurar a YOUTUBE_PLAYLIST_ID no script.`, "erro");
+        } else {
+            mostrarNotificacao("Trilha sonora atualizada e enviada pro YT Music!", "sucesso");
+        }
+        
+        carregarDadosDaNuveem();
+      } else {
+        btnNode.disabled = false;
+        btnNode.innerHTML = textoOriginal;
+      }
+    }
+
+
+    /* =========================================================
+       6. SISTEMA DE NAVEGAÇÃO E MODAIS (INTERFACE)
+       ========================================================= */
+
+    function abrirModal(idContent, idModal = null) {
+      const modal = document.getElementById(idModal || `modal-${idContent.split('-')[1]}`);
+      const content = document.getElementById(idContent);
+      const backdrop = document.getElementById('modal-backdrop');
+      
+      document.body.style.overflow = 'hidden';
+      
+      backdrop.classList.remove('hidden');
+      modal.classList.remove('hidden');
+      
+      void modal.offsetWidth; 
+      
+      backdrop.classList.remove('opacity-0');
+      content.classList.remove('translate-y-full', 'sm:scale-95', 'opacity-0');
+    }
+
+    function abrirModalCriacao() {
+      if (abaAtual === 'dates') {
+        abrirModalNovoDate();
+      } else if (subAbaAtual === 'cartas') {
+        abrirModalCriacaoCarta(); 
+      } else {
+        abrirModal('modal-musica-content', 'modal-musica');
+      }
+    }
+
+    function fecharModais() {
+      const backdrop = document.getElementById('modal-backdrop');
+      const modais = ['modal-date-content', 'modal-carta-content', 'modal-musica-content', 'modal-pos-date-content'];
+      
+      backdrop.classList.add('opacity-0');
+      
+      modais.forEach(id => {
+          const content = document.getElementById(id);
+          if(content) content.classList.add('translate-y-full', 'sm:scale-95', 'opacity-0');
+      });
+
+      const leitura = document.getElementById('modal-leitura-carta');
+      const leituraCard = document.getElementById('leitura-card-container');
+      if(leitura && !leitura.classList.contains('hidden')) {
+          leitura.classList.add('opacity-0');
+          leituraCard.classList.replace('scale-100', 'scale-95');
+      }
+
+      setTimeout(() => {
+         backdrop.classList.add('hidden');
+         document.getElementById('modal-date').classList.add('hidden');
+         document.getElementById('modal-carta').classList.add('hidden');
+         document.getElementById('modal-musica').classList.add('hidden');
+         document.getElementById('modal-pos-date').classList.add('hidden');
+         if(leitura) leitura.classList.add('hidden');
+         document.body.style.overflow = ''; 
+      }, 300); 
+    }
+
+    function navegarAba(aba) {
+      abaAtual = aba;
+      const secDates = document.getElementById('view-dates');
+      const secCartas = document.getElementById('view-cartas');
+      const secMusicas = document.getElementById('view-musicas');
+      const subTabs = document.getElementById('subtabs-dedicatorias');
+      
+      const title = document.getElementById('header-title');
+      const subtitle = document.getElementById('header-subtitle');
+      
+      const navDates = document.getElementById('nav-dates');
+      const navDedic = document.getElementById('nav-dedicatorias');
+      
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      if (aba === 'dates') {
+        secDates.classList.remove('hidden');
+        secCartas.classList.add('hidden');
+        secMusicas.classList.add('hidden');
+        subTabs.classList.add('hidden');
+        
+        title.innerText = "Propostas";
+        subtitle.innerText = "Linha do Tempo";
+
+        navDates.className = "flex-1 md:flex-none flex md:flex-row flex-col items-center justify-center md:justify-start gap-1 md:gap-3 text-brandred bg-rose-50/50 md:bg-white md:shadow-sm md:border md:border-rose-100 py-3 md:px-5 md:py-4 rounded-2xl transition-all duration-200 scale-100 group relative overflow-hidden";
+        navDedic.className = "flex-1 md:flex-none flex md:flex-row flex-col items-center justify-center md:justify-start gap-1 md:gap-3 text-zinc-400 hover:text-zinc-600 md:hover:bg-white/60 md:border md:border-transparent py-3 md:px-5 md:py-4 rounded-2xl transition-all duration-200 md:scale-95 hover:scale-100 group relative overflow-hidden";
+      } else {
+        secDates.classList.add('hidden');
+        subTabs.classList.remove('hidden');
+        mudarSubAba(subAbaAtual); 
+        
+        navDates.className = "flex-1 md:flex-none flex md:flex-row flex-col items-center justify-center md:justify-start gap-1 md:gap-3 text-zinc-400 hover:text-zinc-600 md:hover:bg-white/60 md:border md:border-transparent py-3 md:px-5 md:py-4 rounded-2xl transition-all duration-200 md:scale-95 hover:scale-100 group relative overflow-hidden";
+        navDedic.className = "flex-1 md:flex-none flex md:flex-row flex-col items-center justify-center md:justify-start gap-1 md:gap-3 text-brandred bg-rose-50/50 md:bg-white md:shadow-sm md:border md:border-rose-100 py-3 md:px-5 md:py-4 rounded-2xl transition-all duration-200 scale-100 group relative overflow-hidden";
+      }
+    }
+
+    function mudarSubAba(subAba) {
+      subAbaAtual = subAba;
+      const secCartas = document.getElementById('view-cartas');
+      const secMusicas = document.getElementById('view-musicas');
+      const btnCartas = document.getElementById('btn-sub-cartas');
+      const btnMusicas = document.getElementById('btn-sub-musicas');
+      const title = document.getElementById('header-title');
+      const subtitle = document.getElementById('header-subtitle');
+
+      if (subAba === 'cartas') {
+        secCartas.classList.remove('hidden');
+        secMusicas.classList.add('hidden');
+        title.innerText = "Cartas";
+        subtitle.innerText = "Nossas Palavras";
+
+        btnCartas.className = "flex-1 md:w-32 py-2.5 text-sm font-bold rounded-xl bg-white text-zinc-900 shadow-sm transition-all shadow-zinc-200/50";
+        btnMusicas.className = "flex-1 md:w-32 py-2.5 text-sm font-bold rounded-xl text-zinc-500 hover:text-zinc-700 hover:bg-white/50 transition-all";
+      } else {
+        secCartas.classList.add('hidden');
+        secMusicas.classList.remove('hidden');
+        title.innerText = "Músicas";
+        subtitle.innerText = "Trilha Sonora";
+
+        btnCartas.className = "flex-1 md:w-32 py-2.5 text-sm font-bold rounded-xl text-zinc-500 hover:text-zinc-700 hover:bg-white/50 transition-all";
+        btnMusicas.className = "flex-1 md:w-32 py-2.5 text-sm font-bold rounded-xl bg-white text-zinc-900 shadow-sm transition-all shadow-zinc-200/50";
+      }
+    }
+
+    /*
+     * GUIA DE DEBUG DO YOUTUBE
+     * ==========================================
+     * Se você receber o aviso de "Erro no YT" no aplicativo:
+     * 1. Vá para o Google Apps Script onde sua API está.
+     * 2. No menu à esquerda, clique no ícone de engrenagem (Configurações do Projeto).
+     * 3. Role até "Propriedades do Script" e verifique se 'YOUTUBE_PLAYLIST_ID' está
+     *    com o ID correto: PLU3-uUjPFPk0 (Sem &si= no final)
+     * 4. Clique em "Serviços" (ícone de + na barra esquerda do editor).
+     * 5. Procure e adicione "YouTube Data API v3".
+     * 6. Crie uma função de teste `function test()` vazia, selecione ela e clique em "Executar".
+     * 7. O Google vai abrir um pop-up pedindo permissões. Aprove todas!
+     * 8. A partir de agora o envio vai funcionar.
+     */
+  </script>
+</body>
+</html>
