@@ -2458,7 +2458,8 @@
                 artista: artista,
                 duracao: "API_YT", 
                 capa_url: capaUrl,
-                video_id: videoId
+                video_id: videoId,
+                autor: this.app.auth.getUsuario()
             };
 
             const rspStr = await this.app.api.post('salvarMusica', packetData, false);
